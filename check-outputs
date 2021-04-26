@@ -1,0 +1,6 @@
+#!/bin/sh -e
+
+for file in thread*.gz; do
+    echo $file
+    gzcat $file | wc
+done

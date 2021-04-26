@@ -51,7 +51,7 @@ int     main(int argc,char *argv[])
 	}
     }
     printf("%u threads\n", thread_count);
-    
+
     if ( (infile = fopen(filename, "r")) == NULL )
     {
 	fprintf(stderr, "%s: Cannot open %s: %s\n", argv[0], filename,
@@ -115,12 +115,13 @@ long    *find_start_positions(FILE *infile, unsigned thread_count)
     lines_per_thread = total_lines / thread_count + 1;
     printf("Lines per thread: %zu\n", lines_per_thread);
     
-    // Rewinding is not enough.
-    // Private thread FILE structures must be created.
+    /*
+     *  Rewinding is not enough.  Private thread FILE structures must be
+     *  created so that each stream has a different file descriptor.
+     */
     fclose(infile);
     
     // Move the start positions for each process to the top of the list
-    // puts("Starting files positions per thread:");
     for (c = 0, c2 = 0; c < total_lines; c += lines_per_thread)
     {
 	start_positions[c2] = start_positions[c];
@@ -129,8 +130,10 @@ long    *find_start_positions(FILE *infile, unsigned thread_count)
     }
     start_positions[c2] = eof_position;
     
-    // Immediately free memory from unused line starts to make Ray happy
-    // This cannot fail since we're shrinking the array
+    /*
+     *  Immediately free memory from unused line starts to make Ray happy
+     *  This cannot fail since we're shrinking the array
+     */
     start_positions = realloc(start_positions,
 			      (thread_count + 1) * sizeof(*start_positions));
     return start_positions;
@@ -170,13 +173,11 @@ int     spawn_processes(char *filename, long start_positions[], unsigned thread_
 	my_start = start_positions[thread];
 	my_end = start_positions[thread + 1];
 	fseek(infile, my_start, SEEK_SET);
+	
 	printf("Thread #%u (%u) sending characters %lu to %lu to %s\n",
 		thread, thread_id, my_start, my_end, pipe_cmd);
 	for (c = my_start; c < my_end; ++c)
-	{
-	    ch = getc(infile);
-	    putc(ch, outfile);
-	}
+	    putc(getc(infile), outfile);
 	
 	pclose(outfile);
 	fclose(infile);
