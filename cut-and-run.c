@@ -12,6 +12,9 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <fcntl.h>      // open()
+#include <unistd.h>     // read()
+#include <sys/param.h>  // MIN()
 #include <omp.h>
 #include "cut-and-run.h"
 
@@ -147,18 +150,21 @@ int     spawn_processes(char *filename, long start_positions[], unsigned thread_
     for (unsigned thread = 0; thread < thread_count; ++thread)
     {
 	unsigned    thread_id;
-	long        my_start,
+	char        pipe_cmd[CMD_MAX + 1] = "",
+		    buff[BUFF_SIZE + 1];;
+	FILE        *outfile;
+	int         infd;
+	ssize_t     bytes,
+		    c,
+		    my_start,
 		    my_end;
-	char        pipe_cmd[CMD_MAX + 1] = "";
-	FILE        *outfile,
-		    *infile;
-	int         c;
+	size_t      read_size;
 	
 	// Verify that OpenMP has the right thread count
 	thread_id = omp_get_thread_num();
 	
 	// Copy FILE structure to private variables so they can diverge
-	infile = fopen(filename, "r");
+	infd = open(filename, O_RDONLY);
 	
 	// Open a pipe with popen() or a named pipe with fopen()
 	snprintf(pipe_cmd, CMD_MAX, "cat > thread%u", thread);
@@ -172,15 +178,19 @@ int     spawn_processes(char *filename, long start_positions[], unsigned thread_
 	// Send chars from this thread's section of the file to the pipe
 	my_start = start_positions[thread];
 	my_end = start_positions[thread + 1];
-	fseek(infile, my_start, SEEK_SET);
+	lseek(infd, my_start, SEEK_SET);
 	
 	printf("Thread #%u (%u) sending characters %lu to %lu to %s\n",
 		thread, thread_id, my_start, my_end, pipe_cmd);
-	for (c = my_start; c < my_end; ++c)
-	    putc(getc(infile), outfile);
+	for (c = my_start; c < my_end; c += read_size)
+	{
+	    read_size = MIN(BUFF_SIZE, my_end - c);
+	    bytes = read(infd, buff, read_size);
+	    fwrite(buff, read_size, 1, outfile);
+	}
 	
 	pclose(outfile);
-	fclose(infile);
+	close(infd);
     }
     return EX_OK;
 }
