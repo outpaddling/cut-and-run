@@ -152,7 +152,7 @@ int     spawn_processes(char *filename, long start_positions[], unsigned thread_
 	char        pipe_cmd[CMD_MAX + 1] = "";
 	FILE        *outfile,
 		    *infile;
-	int         c, ch;
+	int         c;
 	
 	// Verify that OpenMP has the right thread count
 	thread_id = omp_get_thread_num();
@@ -161,7 +161,7 @@ int     spawn_processes(char *filename, long start_positions[], unsigned thread_
 	infile = fopen(filename, "r");
 	
 	// Open a pipe with popen() or a named pipe with fopen()
-	snprintf(pipe_cmd, CMD_MAX, "gzip -c > thread%u.gz", thread);
+	snprintf(pipe_cmd, CMD_MAX, "cat > thread%u", thread);
 	if ( (outfile = popen(pipe_cmd, "w")) == NULL )
 	{
 	    fprintf(stderr, "spawn_processes(): Cannot pipe output: %s\n",
