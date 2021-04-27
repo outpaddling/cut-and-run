@@ -121,7 +121,7 @@ long    *find_start_positions(FILE *infile, unsigned thread_count)
      */
     fclose(infile);
     
-    // Move the start positions for each process to the top of the list
+    // Move the start positions for each thread to the top of the list
     for (c = 0, c2 = 0; c < total_lines; c += lines_per_thread)
     {
 	start_positions[c2] = start_positions[c];
