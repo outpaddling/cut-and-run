@@ -193,7 +193,8 @@ int     spawn_processes(const char *filename, const char *cmd,
 	char        pipe_cmd[CMD_MAX + 1] = "",
 		    *read_buff;
 	FILE        *outfile;
-	int         infd;
+	int         infd,
+		    outfd;
 	ssize_t     bytes,
 		    c,
 		    my_start,
@@ -230,6 +231,9 @@ int     spawn_processes(const char *filename, const char *cmd,
 		    pipe_cmd);
 	    exit(EX_CANTCREAT);
 	}
+	// Use popen() only for convenience.  Don't use the FILE stream
+	// returned, but use the file descriptor directly for low-level I/O.
+	outfd = fileno(outfile);
 	
 	// Send chars from this thread's section of the file to the pipe
 	my_start = start_positions[thread];
@@ -245,10 +249,11 @@ int     spawn_processes(const char *filename, const char *cmd,
 	    // FIXME: Using read_size should be the same as bytes, but it
 	    // inserts one extra character before EOF
 	    // printf("%zu %zu\n", read_size, bytes);
-	    fwrite(read_buff, bytes, 1, outfile);
+	    write(outfd, read_buff, bytes);
 	}
 	
-	pclose(outfile);
+	close(outfd);       // Properly flush low-level buffers
+	pclose(outfile);    // Free pipe structures
 	close(infd);
 	free(read_buff);
     }
