@@ -1,0 +1,3 @@
+cut-and-run.o: cut-and-run.c cut-and-run.h protos.h
+	${CC} -c ${CFLAGS} cut-and-run.c
+
