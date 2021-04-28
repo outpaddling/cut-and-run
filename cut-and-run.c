@@ -15,6 +15,7 @@
 #include <fcntl.h>      // open()
 #include <unistd.h>     // read()
 #include <sys/param.h>  // MIN()
+#include <sys/stat.h>   // fstat()
 #include <omp.h>
 #include "cut-and-run.h"
 
@@ -22,7 +23,7 @@ int     main(int argc,char *argv[])
 
 {
     static long *start_positions;
-    int         infile;
+    int         infd;
     char        *filename,
 		*out_filename,
 		*cmd,
@@ -61,15 +62,15 @@ int     main(int argc,char *argv[])
     }
     printf("%u threads\n", thread_count);
 
-    if ( (infile = open(filename, O_RDONLY)) == -1 )
+    if ( (infd = open(filename, O_RDONLY)) == -1 )
     {
 	fprintf(stderr, "%s: Cannot open %s: %s\n", argv[0], filename,
 		strerror(errno));
 	return EX_NOINPUT;
     }
     // Doesn't help at all
-    //setvbuf(infile, read_buff, _IOFBF, READ_BUFF_SIZE);
-    start_positions = find_start_positions(infile, thread_count);
+    //setvbuf(infd, read_buff, _IOFBF, read_buff_size);
+    start_positions = find_start_positions(infd, thread_count);
     return spawn_processes(filename, cmd, out_filename,
 			   start_positions, thread_count);
 }
@@ -87,7 +88,7 @@ int     main(int argc,char *argv[])
  *  2021-04-25  Jason Bacon Begin
  ***************************************************************************/
 
-long    *find_start_positions(int infile, unsigned thread_count)
+long    *find_start_positions(int infd, unsigned thread_count)
 
 {
     long    *start_positions,
@@ -100,9 +101,11 @@ long    *find_start_positions(int infile, unsigned thread_count)
 	    total_lines,
 	    lines_per_thread,
 	    bytes,
-	    max_lines = 1000000;
-    char    *p;
-    static char    buff[READ_BUFF_SIZE + 1];
+	    max_lines = 1000000,
+	    read_buff_size;
+    char    *p,
+	    *read_buff;
+    struct stat fileinfo;
     
     // Allocate conservatively and add on as needed
     if ( (start_positions = malloc(max_lines * sizeof(*start_positions))) == NULL )
@@ -111,12 +114,22 @@ long    *find_start_positions(int infile, unsigned thread_count)
 	exit(EX_UNAVAILABLE);
     }
     
+    fstat(infd, &fileinfo);
+    read_buff_size = fileinfo.st_blksize;
+    printf("Block size = %zu\n", read_buff_size);
+    
+    if ( (read_buff = malloc(read_buff_size + 1)) == NULL )
+    {
+	fputs("find_start_positions(): Cannot allocate read_buff.\n", stderr);
+	exit(EX_UNAVAILABLE);
+    }
+
     file_position = 0;
     total_lines = 1;
     start_positions[0] = 0;     // First block is beginning of file
-    while ( (bytes = read(infile, buff, READ_BUFF_SIZE)) > 0 )
+    while ( (bytes = read(infd, read_buff, read_buff_size)) > 0 )
     {
-	for (p = buff; p < buff + bytes; ++p, ++file_position)
+	for (p = read_buff; p < read_buff + bytes; ++p, ++file_position)
 	{
 	    if ( *p == '\n' )
 	    {
@@ -143,7 +156,8 @@ long    *find_start_positions(int infile, unsigned thread_count)
      *  Rewinding is not enough.  Private thread FILE structures must be
      *  created so that each stream has a different file descriptor.
      */
-    close(infile);
+    close(infd);
+    free(read_buff);
     
     // Move the start positions for each thread to the top of the list
     for (c = 0, c2 = 0; c < total_lines; c += lines_per_thread)
@@ -173,20 +187,32 @@ int     spawn_processes(char *filename, char *cmd, char *out_filename,
     {
 	unsigned    thread_id;
 	char        pipe_cmd[CMD_MAX + 1] = "",
-		    buff[READ_BUFF_SIZE + 1];
+		    *read_buff;
 	FILE        *outfile;
 	int         infd;
 	ssize_t     bytes,
 		    c,
 		    my_start,
 		    my_end;
-	size_t      read_size;
+	size_t      read_buff_size,
+		    read_size;
+	struct stat fileinfo;
 	
 	// Verify that OpenMP has the right thread count
 	thread_id = omp_get_thread_num();
 	
 	// Copy FILE structure to private variables so they can diverge
 	infd = open(filename, O_RDONLY);
+	
+	fstat(infd, &fileinfo);
+	read_buff_size = fileinfo.st_blksize;
+	printf("Block size = %zu\n", read_buff_size);
+
+	if ( (read_buff = malloc(read_buff_size + 1)) == NULL )
+	{
+	    fputs("find_start_positions(): Cannot allocate read_buff.\n", stderr);
+	    exit(EX_UNAVAILABLE);
+	}
 	
 	// Open a pipe with popen() or a named pipe with fopen()
 	snprintf(pipe_cmd, CMD_MAX, "%s > %s", cmd, out_filename);
@@ -206,13 +232,14 @@ int     spawn_processes(char *filename, char *cmd, char *out_filename,
 		thread, thread_id, my_start, my_end, pipe_cmd);
 	for (c = my_start; c < my_end - 1; c += read_size)
 	{
-	    read_size = MIN(READ_BUFF_SIZE, my_end - c - 1);
-	    bytes = read(infd, buff, read_size);
-	    fwrite(buff, read_size, 1, outfile);
+	    read_size = MIN(read_buff_size, my_end - c - 1);
+	    bytes = read(infd, read_buff, read_size);
+	    fwrite(read_buff, read_size, 1, outfile);
 	}
 	
 	pclose(outfile);
 	close(infd);
+	free(read_buff);
     }
     return EX_OK;
 }
