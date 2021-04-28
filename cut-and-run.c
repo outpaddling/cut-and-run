@@ -182,6 +182,10 @@ int     spawn_processes(const char *filename, const char *cmd,
 			const long start_positions[], unsigned thread_count)
 
 {
+    char    thread_count_str[20];
+    
+    snprintf(thread_count_str, 19, "%u", thread_count);
+    
     #pragma omp parallel for
     for (unsigned thread = 0; thread < thread_count; ++thread)
     {
@@ -218,8 +222,8 @@ int     spawn_processes(const char *filename, const char *cmd,
 	    snprintf(pipe_cmd, CMD_MAX, "%s > %s",
 		     cmd, out_filename);
 	else
-	    snprintf(pipe_cmd, CMD_MAX, "%s > %s%u%s",
-		     cmd, out_filename, thread, extension);
+	    snprintf(pipe_cmd, CMD_MAX, "%s > %s%0*u%s", cmd, out_filename,
+		     (unsigned)strlen(thread_count_str), thread, extension);
 	if ( (outfile = popen(pipe_cmd, "w")) == NULL )
 	{
 	    fprintf(stderr, "spawn_processes(): Cannot pipe output: %s\n",
@@ -260,7 +264,7 @@ void    usage(char *argv[])
 	"\"extension\" is a filename extension for each output file.\n\n"
 	"Actual output file for thread N is output-file-stemN[extension]\n"
 	"unless output file is /dev/null, in which case it is unaltered.\n\n"
-	"Example: %s cat input.fa output- fa\n\n"
+	"Example: %s cat input.fa output- .fa\n\n"
 	"Produces output files output-1.fa, output-2.fa, ...\n\n",
 	argv[0]);
     exit(EX_USAGE);
