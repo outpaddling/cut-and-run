@@ -95,7 +95,6 @@ long    *find_start_positions(int infd, unsigned thread_count)
 	    // Tracking this is slightly faster than ftell()
 	    file_position,
 	    eof_position;
-    int     ch;
     size_t  c,
 	    c2,
 	    total_lines,
@@ -116,7 +115,7 @@ long    *find_start_positions(int infd, unsigned thread_count)
     
     fstat(infd, &fileinfo);
     read_buff_size = fileinfo.st_blksize;
-    printf("Block size = %zu\n", read_buff_size);
+    printf("File system block size = %zu\n", read_buff_size);
     
     if ( (read_buff = malloc(read_buff_size + 1)) == NULL )
     {
@@ -206,7 +205,6 @@ int     spawn_processes(char *filename, char *cmd, char *out_filename,
 	
 	fstat(infd, &fileinfo);
 	read_buff_size = fileinfo.st_blksize;
-	printf("Block size = %zu\n", read_buff_size);
 
 	if ( (read_buff = malloc(read_buff_size + 1)) == NULL )
 	{
