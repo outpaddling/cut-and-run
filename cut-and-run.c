@@ -240,9 +240,12 @@ int     spawn_processes(const char *filename, const char *cmd,
 		thread, thread_id, my_start, my_end, pipe_cmd);
 	for (c = my_start; c < my_end - 1; c += read_size)
 	{
-	    read_size = MIN(read_buff_size, my_end - c - 1);
+	    read_size = MIN(read_buff_size, my_end - c);
 	    bytes = read(infd, read_buff, read_size);
-	    fwrite(read_buff, read_size, 1, outfile);
+	    // FIXME: Using read_size should be the same as bytes, but it
+	    // inserts one extra character before EOF
+	    // printf("%zu %zu\n", read_size, bytes);
+	    fwrite(read_buff, bytes, 1, outfile);
 	}
 	
 	pclose(outfile);
