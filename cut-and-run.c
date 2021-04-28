@@ -26,6 +26,7 @@ int     main(int argc,char *argv[])
     int         infd;
     char        *filename,
 		*out_filename,
+		*extension = "",
 		*cmd,
 		*thread_count_str,
 		*end;
@@ -33,16 +34,15 @@ int     main(int argc,char *argv[])
     
     switch(argc)
     {
+	case    5:
+	    extension = argv[4];
 	case    4:
 	    filename = argv[1];
 	    cmd = argv[2];
 	    out_filename = argv[3];
 	    break;
 	default:
-	    fprintf(stderr,
-		    "Usage: [env OMP_NUM_THREADS=#] %s command output-filename\n",
-		    argv[0]);
-	    return EX_USAGE;
+	    usage(argv);
     }
     
     // Get thread count from environment if present, else default
@@ -71,7 +71,7 @@ int     main(int argc,char *argv[])
     // Doesn't help at all
     //setvbuf(infd, read_buff, _IOFBF, read_buff_size);
     start_positions = find_start_positions(infd, thread_count);
-    return spawn_processes(filename, cmd, out_filename,
+    return spawn_processes(filename, cmd, out_filename, extension,
 			   start_positions, thread_count);
 }
 
@@ -177,8 +177,9 @@ long    *find_start_positions(int infd, unsigned thread_count)
 }
 
 
-int     spawn_processes(char *filename, char *cmd, char *out_filename,
-			long start_positions[], unsigned thread_count)
+int     spawn_processes(const char *filename, const char *cmd,
+			const char *out_filename, const char *extension,
+			const long start_positions[], unsigned thread_count)
 
 {
     #pragma omp parallel for
@@ -213,7 +214,12 @@ int     spawn_processes(char *filename, char *cmd, char *out_filename,
 	}
 	
 	// Open a pipe with popen() or a named pipe with fopen()
-	snprintf(pipe_cmd, CMD_MAX, "%s > %s", cmd, out_filename);
+	if ( strcmp(out_filename, "/dev/null") == 0 )
+	    snprintf(pipe_cmd, CMD_MAX, "%s > %s",
+		     cmd, out_filename);
+	else
+	    snprintf(pipe_cmd, CMD_MAX, "%s > %s%u%s",
+		     cmd, out_filename, thread, extension);
 	if ( (outfile = popen(pipe_cmd, "w")) == NULL )
 	{
 	    fprintf(stderr, "spawn_processes(): Cannot pipe output: %s\n",
@@ -241,3 +247,22 @@ int     spawn_processes(char *filename, char *cmd, char *out_filename,
     }
     return EX_OK;
 }
+
+
+void    usage(char *argv[])
+
+{
+    fprintf(stderr,
+	"Usage: [env OMP_NUM_THREADS=#] "
+	"%s command output-file-stem [extension]\n\n", argv[0]);
+    fprintf(stderr,
+	"\"cmd\" is any command that reads from stdin and writes to stdout\n"
+	"\"extension\" is a filename extension for each output file.\n\n"
+	"Actual output file for thread N is output-file-stemN[extension]\n"
+	"unless output file is /dev/null, in which case it is unaltered.\n\n"
+	"Example: %s cat input.fa output- fa\n\n"
+	"Produces output files output-1.fa, output-2.fa, ...\n\n",
+	argv[0]);
+    exit(EX_USAGE);
+}
+
