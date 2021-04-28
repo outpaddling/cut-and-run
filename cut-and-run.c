@@ -260,16 +260,15 @@ void    usage(char *argv[])
 
 {
     fprintf(stderr,
-	"Usage: [env OMP_NUM_THREADS=#] "
-	"%s command output-file-stem [extension]\n\n", argv[0]);
+	"Usage:\n\n    [env OMP_NUM_THREADS=#] \\\n"
+	"    %s input-file command output-file-stem [extension]\n\n", argv[0]);
     fprintf(stderr,
 	"\"cmd\" is any command that reads from stdin and writes to stdout\n"
-	"\"extension\" is a filename extension for each output file.\n\n"
+	"\"extension\" is an optional filename extension for each output file.\n\n"
 	"Actual output file for thread N is output-file-stemN[extension]\n"
 	"unless output file is /dev/null, in which case it is unaltered.\n\n"
-	"Example: %s cat input.fa output- .fa\n\n"
-	"Produces output files output-1.fa, output-2.fa, ...\n\n",
+	"Example:\n\n    %s input.fa cat output- .fa\n"
+	"    Produces output files output-1.fa, output-2.fa, ...\n\n",
 	argv[0]);
     exit(EX_USAGE);
 }
-
