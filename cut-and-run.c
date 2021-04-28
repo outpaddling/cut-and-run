@@ -102,7 +102,7 @@ long    *find_start_positions(int infile, unsigned thread_count)
 	    bytes,
 	    max_lines = 1000000;
     char    *p;
-    static char    buff[BUFF_SIZE + 1];
+    static char    buff[READ_BUFF_SIZE + 1];
     
     // Allocate conservatively and add on as needed
     if ( (start_positions = malloc(max_lines * sizeof(*start_positions))) == NULL )
@@ -114,7 +114,7 @@ long    *find_start_positions(int infile, unsigned thread_count)
     file_position = 0;
     total_lines = 1;
     start_positions[0] = 0;     // First block is beginning of file
-    while ( (bytes = read(infile, buff, BUFF_SIZE)) > 0 )
+    while ( (bytes = read(infile, buff, READ_BUFF_SIZE)) > 0 )
     {
 	for (p = buff; p < buff + bytes; ++p, ++file_position)
 	{
@@ -173,7 +173,7 @@ int     spawn_processes(char *filename, char *cmd, char *out_filename,
     {
 	unsigned    thread_id;
 	char        pipe_cmd[CMD_MAX + 1] = "",
-		    buff[BUFF_SIZE + 1];;
+		    buff[READ_BUFF_SIZE + 1];
 	FILE        *outfile;
 	int         infd;
 	ssize_t     bytes,
@@ -206,7 +206,7 @@ int     spawn_processes(char *filename, char *cmd, char *out_filename,
 		thread, thread_id, my_start, my_end, pipe_cmd);
 	for (c = my_start; c < my_end - 1; c += read_size)
 	{
-	    read_size = MIN(BUFF_SIZE, my_end - c - 1);
+	    read_size = MIN(READ_BUFF_SIZE, my_end - c - 1);
 	    bytes = read(infd, buff, read_size);
 	    fwrite(buff, read_size, 1, outfile);
 	}
