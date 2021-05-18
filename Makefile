@@ -76,6 +76,7 @@ MANPREFIX   ?= ${PREFIX}
 CC          ?= cc
 CFLAGS      ?= -Wall -g -O
 CFLAGS      += -fopenmp
+CFLAGS      += -std=c99     # Needed for CentOS 7
 
 # Link command:
 # Use ${FC} to link when mixing C and Fortran
