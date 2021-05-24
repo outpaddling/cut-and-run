@@ -1,2 +1,4 @@
 # cut-and-run
-C program to split a file into chunks and feed them to parallel processes
+Cut-and-run is a C program that splits a text file into chunks and feeds them
+to parallel processes using OpenMP threads to read each segment of the file
+in parallel.
