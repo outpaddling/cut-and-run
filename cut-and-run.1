@@ -1,0 +1,75 @@
+.TH cut-and-run 1
+.SH NAME    \" Section header
+.PP
+
+cut-and-run \- Split a text file into segments and process in parallel
+
+.SH SYNOPSIS
+.PP
+.nf 
+.na
+[env OMP_NUM_THREADS=x] cut-and-run input-file 'command' prefix [extension]
+.ad
+.fi
+
+.SH "DESCRIPTION"
+.B cut-and-run
+breaks a text file at line boundaries into roughly equal sized segments and
+pipes each segment to a separate process running the command provided by
+the user.  Segments are read using mutliple OpenMP threads in order to
+maximize throughput.
+
+.SH "ARGUMENTS"
+.B input-file
+is a text file, which is first scanned for line boundaries.
+.B cut-and-run
+then spawns threads that position their copy of the input FILE pointer to the
+beginning of the first line in their segment and proceed to read through the
+end of that segment, piping the data to a process running the provided
+command.
+
+.B command
+contains the command to which data from the input file is piped and any
+flags or arguments.  It must be received as a single argument to
+.B cut-and-run
+so it should be enclosed in quotes if it contains any white space.  The
+command should be constructed so that it sends output to stdout.
+
+.B prefix
+is the first part of the output filename.  The thread number and the
+optional extension will be appended to this prefix, unless prefix is
+/dev/null, in which case it is not modified.
+
+.B extension,
+if present, as appended to each output filename after the thread number.
+
+.SH EXAMPLES
+.nf
+.na
+# Create gzipped blocks from file.txt named output-0.gz, output-1.gz...
+cut-and-run file.txt 'gzip -c' output- .gz
+
+# Benchmark cut-and-run
+env OMP_NUM_THREADS=4 time ./cut-and-run input.txt cat /dev/null
+.ad
+.fi
+
+.SH ENVIRONMENT
+.nf
+.na
+OMP_NUM_THREADS: Overrides the default number of threads, which is equal
+to the number of processors detected.
+.ad
+.fi
+
+.SH "SEE ALSO"
+OpenMP
+
+.SH BUGS
+Please report bugs to the author and send patches in unified diff format.
+(man diff for more information)
+
+.SH AUTHOR
+.nf
+.na
+J. Bacon
