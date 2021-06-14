@@ -91,8 +91,6 @@ RANLIB      ?= ranlib
 
 INCLUDES    += -I${LOCALBASE}/include
 CFLAGS      += ${INCLUDES}
-CXXFLAGS    += ${INCLUDES}
-FFLAGS      += ${INCLUDES}
 LDFLAGS     += -fopenmp -L${LOCALBASE}/lib
 
 ############################################################################
