@@ -49,3 +49,6 @@ dkms.conf
 # Backup
 .*.bak
 *.bak
+
+# Data
+*.fa
