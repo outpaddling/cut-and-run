@@ -79,7 +79,8 @@ MANDIR      ?= ${MANPREFIX}/man
 CC          ?= cc
 CFLAGS      ?= -Wall -g -O
 CFLAGS      += -fopenmp
-CFLAGS      += -std=c99     # Needed for CentOS 7
+# Causes undefined popen()
+# CFLAGS      += -std=c99     # Needed for CentOS 7 def in for loop
 
 # Link command:
 # Use ${FC} to link when mixing C and Fortran

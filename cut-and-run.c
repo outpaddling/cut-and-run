@@ -182,12 +182,13 @@ int     spawn_processes(const char *filename, const char *cmd,
 			const long start_positions[], unsigned thread_count)
 
 {
-    char    thread_count_str[20];
+    char        thread_count_str[20];
+    unsigned    thread;
     
     snprintf(thread_count_str, 19, "%u", thread_count);
     
     #pragma omp parallel for
-    for (unsigned thread = 0; thread < thread_count; ++thread)
+    for (thread = 0; thread < thread_count; ++thread)
     {
 	unsigned    thread_id;
 	char        pipe_cmd[CMD_MAX + 1] = "",
