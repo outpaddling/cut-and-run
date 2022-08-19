@@ -14,10 +14,13 @@
 #include <stdlib.h>
 #include <fcntl.h>      // open()
 #include <unistd.h>     // read()
-#include <sys/param.h>  // MIN()
 #include <sys/stat.h>   // fstat()
 #include <omp.h>
 #include "cut-and-run.h"
+
+#ifndef MIN
+#define MIN(a,b)    ((a) < (b) ? (a) : (b))
+#endif
 
 int     main(int argc,char *argv[])
 
