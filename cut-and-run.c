@@ -244,7 +244,7 @@ int     spawn_processes(const char *filename, const char *cmd,
 	my_end = start_positions[thread + 1];
 	lseek(infd, my_start, SEEK_SET);
 	
-	printf("Thread #%u (%u) sending characters %lu to %lu to %s\n",
+	printf("Thread #%u (%u) sending characters %zd to %zd to %s\n",
 		thread, thread_id, my_start, my_end, pipe_cmd);
 	for (c = my_start; c < my_end - 1; c += read_size)
 	{
